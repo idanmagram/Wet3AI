@@ -12,12 +12,11 @@ def value_iteration(mdp: MDP, U_init: np.ndarray, epsilon: float=10 ** (-3)) -> 
     # return: the utility for each of the MDP's state obtained at the end of the algorithms' run.
     #
     
-    U_final = None
+    U_final = deepcopy(U_init)
     U_tag = deepcopy(U_init)
-    delta = 0
-
+    delta = float('inf')
     # ====== YOUR CODE: ======
-    while delta < epsilon * (1 - mdp.gamma) / mdp.gamma:
+    while delta >= epsilon * ((1 - mdp.gamma) / mdp.gamma):
         U_final = deepcopy(U_tag)
         delta = 0
         for r in range(mdp.num_row):
@@ -25,18 +24,17 @@ def value_iteration(mdp: MDP, U_init: np.ndarray, epsilon: float=10 ** (-3)) -> 
                 if mdp.board[r][c] == "WALL":
                     continue
                 if (r, c) in mdp.terminal_states:
-                    U_final[r][c] = mdp.get_reward((r, c))
+                    U_tag[r][c] = float(mdp.get_reward((r, c)))
                     continue
                 utilities_actions = []
                 for action in mdp.actions:
                     sum_uti = 0
-                    for optional_act in mdp.actions:
+                    for i, optional_act in enumerate(mdp.actions):
                         next_state = mdp.step((r, c), optional_act)
-                        sum_uti += U_final[next_state[0]][next_state[1]] * mdp.transition_function[action][optional_act]
+                        sum_uti += U_final[next_state[0]][next_state[1]] * mdp.transition_function[action][i]
                     utilities_actions.append(sum_uti)
-                U_tag[r][c] = mdp.get_reward((r, c)) + mdp.gamma * max(utilities_actions)
-                if abs(U_tag[r][c] - U_final[r][c]) > delta:
-                    delta = abs(U_tag[r][c] - U_final[r][c])
+                U_tag[r][c] = float(mdp.get_reward((r, c))) + mdp.gamma * max(utilities_actions)
+                delta = max(abs(U_tag[r][c] - U_final[r][c]), delta)
     return U_final
     # ========================
 
@@ -45,21 +43,24 @@ def get_policy(mdp: MDP, U: np.ndarray) -> np.ndarray:
     # Given the mdp and the utility of each state - U (which satisfies the Belman equation)
     # return: the policy
     #
-    
-    policy = None
-    max_neighbor_utility = -float('-inf')
+
+    policy = deepcopy(U)
+    max_neighbor_utility = -float('inf')
     max_action = 0
     # ====== YOUR CODE: ======
     for r in range(mdp.num_row):
         for c in range(mdp.num_col):
-            max_neighbor_utility = -float('-inf')
+            if mdp.board[r][c] == "WALL" or (r, c) in mdp.terminal_states:
+                policy[r][c] = None
+                continue
+            max_neighbor_utility = -float('inf')
             for optional_act in mdp.actions:
                 next_state = mdp.step((r, c), optional_act)
                 if next_state != (r, c) and U[next_state[0]][next_state[1]] > max_neighbor_utility:
                     max_neighbor_utility = U[next_state[0]][next_state[1]]
                     max_action = optional_act
 
-        policy[r][c] = max_action
+            policy[r][c] = max_action
     # ========================
     return policy
 

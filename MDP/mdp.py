@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import List, Tuple, Dict, Union
 from termcolor import colored
 from enum import Enum
+import os
 
 class Action(Enum):
     UP = "UP"
@@ -89,7 +90,7 @@ class MDP:
 
 
     @staticmethod
-    def load_mdp(board: str='board', terminal_states: str='terminal_states', transition_function: str='transition_function', gamma: float = 0.9) -> MDP:
+    def load_mdp(board: str='MDP/board', terminal_states: str='MDP/terminal_states', transition_function: str='MDP/transition_function', gamma: float = 0.9) -> MDP:
         """
         Loads an MDP from the specified files.
 
@@ -99,7 +100,6 @@ class MDP:
         :param gamma: Discount factor.
         :return: An instance of MDP.
         """
-        
         board_env = []
         with open(board, 'r') as f:
             for line in f.readlines():
