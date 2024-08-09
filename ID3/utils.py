@@ -61,6 +61,8 @@ def l2_dist(x1: np.array, x2: np.array):
     dists = None
 
     # ====== YOUR CODE: ======
+    #return np.linalg.norm(x1 - x2)
+
     x1_squared_norms = np.sum(x1 ** 2, axis=1).reshape(-1, 1)  # Shape (N1, 1)
     x2_squared_norms = np.sum(x2 ** 2, axis=1).reshape(1, -1)  # Shape (1, N2)
 

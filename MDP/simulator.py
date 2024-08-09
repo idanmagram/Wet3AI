@@ -2,7 +2,7 @@
 from typing import Optional, Generator, Tuple, Any, Union
 from mdp import Action
 class Simulator():
-    def __init__(self, output_file: str='simulator_results.txt'):
+    def __init__(self, output_file: str='MDP/simulator_results.txt'):
         self.output_file = output_file
         
     def replay(self, num_episodes: Optional[int] = None, result_file: Optional[str] = None):

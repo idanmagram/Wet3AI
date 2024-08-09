@@ -73,7 +73,6 @@ def state_to_cord(mdp: MDP, state):
 
 def get_neighbors(mdp: MDP, x, y):
     neighbors = []
-    print("keys ", mdp.actions.keys())
     for optional_act in mdp.actions.keys():
         next_state = mdp.step((x, y), optional_act)
         neighbors.append((optional_act, next_state))
@@ -101,19 +100,15 @@ def policy_evaluation(mdp: MDP, policy: np.ndarray) -> np.ndarray:
             if mdp.board[x][y] == 'WALL' or (x, y) in mdp.terminal_states:
                 continue
             neighbors = get_neighbors(mdp, x, y)
-            print(neighbors)
 
             for index, neighbor in enumerate(neighbors):
-                print("policy[x][y]", policy[x][y])
-                print(probs[state][neighbor[1][0] + neighbor[1][1]])
-                tmp = mdp.transition_function[policy[x][y]]
-                probs[state][neighbor[1][0] + neighbor[1][1]] = mdp.transition_function[policy[x][y]][index]
+                probs[state][neighbor[1][0]*mdp.num_col + neighbor[1][1]] += mdp.transition_function[Action(policy[x][y])][index]
 
     I = np.eye(mdp.num_col * mdp.num_row)
     U = np.linalg.inv(I - mdp.gamma * probs) @ flattened_board_array
     for row in range(mdp.num_row):
         for col in range(mdp.num_col):
-            U_res[row][col] = U[row + col]
+            U_res[row][col] = U[row*mdp.num_col + col]
     return U_res
     # ========================
 
@@ -133,22 +128,21 @@ def policy_iteration(mdp: MDP, policy_init: np.ndarray) -> np.ndarray:
         U = policy_evaluation(mdp, optimal_policy)
         for r in range(mdp.num_row):
             for c in range(mdp.num_col):
-                if mdp.board[r][c] == "WALL":
-                    continue
-                if (r, c) in mdp.terminal_states:
+                if mdp.board[r][c] == "WALL" or (r, c) in mdp.terminal_states:
+                    optimal_policy[r][c] = "None"
                     continue
                 utilities_actions = []
-                for action in mdp.actions:
+                for action in mdp.actions.keys():
                     sum_uti = 0
                     for i, optional_act in enumerate(mdp.actions):
-                        if optional_act == optimal_policy[r][c]:
+                        if optional_act == Action(optimal_policy[r][c]):
                             optimal_policy_index = i
                         next_state = mdp.step((r, c), optional_act)
                         sum_uti += U[next_state[0]][next_state[1]] * mdp.transition_function[action][i]
-                    utilities_actions.append(sum_uti)
-                if max(utilities_actions) > utilities_actions[optimal_policy_index]:
-                    max_index = utilities_actions.index(max(utilities_actions))
-                    optimal_policy[r][c] = max_index
+                    utilities_actions.append((sum_uti, action))
+                max_sum_uti, best_action = max(utilities_actions, key=lambda x: x[0])
+                if max_sum_uti > utilities_actions[optimal_policy_index][0]:
+                    optimal_policy[r][c] = best_action
                     unchanged = False
 
     # ========================
@@ -177,12 +171,24 @@ def adp_algorithm(
     NOTE: the transition probabilities should be represented as a dictionary of dictionaries, so that given a desired action (the first key),
     its nested dicionary will contain the condional probabilites of all the actions. 
     """
-    
 
-    transition_probs = None
-    reward_matrix = None
-    # TODO
+    reward_matrix = np.zeros((num_rows, num_cols))
+
+    # Initialize transition probabilities and number of actions dictionaries
+    transition_probs = {action: {a: 0.0 for a in actions} for action in actions}
+    number_of_actions = {action: {a: 0 for a in actions} for action in actions}
     # ====== YOUR CODE: ======
-    raise NotImplementedError
+    for episode_index, episode_gen in enumerate(sim.replay(num_episodes)):
+        print(f"@@@@    episode {episode_index}   @@@@@")
+        for step_index, step in enumerate(episode_gen):
+            state, reward, action, actual_action = step
+            print(f"Step {step_index}: state={state}, reward={reward}, action={action}, actual_action={actual_action}")
+            if action == None and actual_action == None:
+                continue
+            reward_matrix[state[0]][state[1]] = reward
+            number_of_actions[action][actual_action] += 1
+            transition_probs[action][actual_action] = number_of_actions[action][actual_action] / sum((number_of_actions[action]).values())
+
+
     # ========================
     return reward_matrix, transition_probs 

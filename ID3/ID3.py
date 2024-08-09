@@ -31,7 +31,10 @@ class ID3:
         impurity = 0.0
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        for count in counts.values():
+            prob = count / sum(counts.values())
+            impurity += prob * np.log(prob)
+        impurity = -impurity
         # ========================
 
         return impurity
@@ -55,7 +58,12 @@ class ID3:
 
         info_gain_value = 0.0
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        E = len(left_labels) + len(right_labels)
+        E_1 = len(left_labels)
+        E_2 = len(right_labels)
+        entropy_1 = self.entropy(left, left_labels)
+        entropy_2 = self.entropy(right, right_labels)
+        info_gain_value = current_uncertainty - ((E_1 / E * entropy_1) + (E_2 / E * entropy_2))
         # ========================
 
         return info_gain_value
@@ -74,11 +82,19 @@ class ID3:
         #   - If so, add it to 'true rows', otherwise, add it to 'false rows'.
         #   - Calculate the info gain using the `info_gain` method.
 
-        gain, true_rows, true_labels, false_rows, false_labels = None, None, None, None, None
+        gain, true_rows, true_labels, false_rows, false_labels = None, [], [], [], []
         assert len(rows) == len(labels), 'Rows size should be equal to labels size.'
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        for row in rows:
+            if question.match(row):
+                true_rows.append(row)
+                true_labels.append(row[0])
+            else:
+                false_rows.append(row)
+                false_labels.append(row[0])
+
+        gain = self.info_gain(true_rows, true_labels, false_rows, false_labels, current_uncertainty)
         # ========================
 
         return gain, true_rows, true_labels, false_rows, false_labels
@@ -100,7 +116,26 @@ class ID3:
         current_uncertainty = self.entropy(rows, labels)
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        features = rows[0]
+        features_values = []
+        transposed_matrix = rows.T
+        for new_row in transposed_matrix:
+            new_row = np.sort(new_row)
+        for col_idx, feature in enumerate(features):
+            for new_row in enumerate(transposed_matrix):
+                for i, curr_val in enumerate(new_row):
+                    if i != len(new_row):
+                        value = (new_row[i] + new_row[i + 1]) / 2
+                        q = Question(feature, col_idx, value)
+                        gain, true_rows, true_labels, false_rows, false_labels = self.partition(rows, labels, q,
+                                                                                                current_uncertainty)
+                        if gain >= best_gain:
+                            best_gain = gain
+                            best_question = q
+                            best_false_rows = false_rows
+                            best_false_labels = false_labels
+                            best_true_rows = true_rows
+                            best_true_labels = true_labels
         # ========================
 
         return best_gain, best_question, best_true_rows, best_true_labels, best_false_rows, best_false_labels
