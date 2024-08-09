@@ -54,7 +54,7 @@ def get_policy(mdp: MDP, U: np.ndarray) -> np.ndarray:
                 policy[r][c] = None
                 continue
             max_neighbor_utility = -float('inf')
-            for optional_act in mdp.actions:
+            for optional_act in mdp.actions.keys():
                 next_state = mdp.step((r, c), optional_act)
                 if next_state != (r, c) and U[next_state[0]][next_state[1]] > max_neighbor_utility:
                     max_neighbor_utility = U[next_state[0]][next_state[1]]
@@ -64,6 +64,21 @@ def get_policy(mdp: MDP, U: np.ndarray) -> np.ndarray:
     # ========================
     return policy
 
+def state_to_cord(mdp: MDP, state):
+    rows = mdp.num_row
+    cols = mdp.num_col
+    i = int(state / cols)
+    j = int(state % cols)
+    return i, j
+
+def get_neighbors(mdp: MDP, x, y):
+    neighbors = []
+    print("keys ", mdp.actions.keys())
+    for optional_act in mdp.actions.keys():
+        next_state = mdp.step((x, y), optional_act)
+        neighbors.append((optional_act, next_state))
+    return neighbors
+
 
 def policy_evaluation(mdp: MDP, policy: np.ndarray) -> np.ndarray:
 
@@ -71,9 +86,35 @@ def policy_evaluation(mdp: MDP, policy: np.ndarray) -> np.ndarray:
     # return: the utility U(s) of each state s
     #
     # ====== YOUR CODE: ======
+    U_res = deepcopy(policy)
+    flattened_board_array = [item for sublist in mdp.board for item in sublist]
+    probs = np.zeros((len(flattened_board_array), len(flattened_board_array)), dtype=float)
+
+    for i in range(len(flattened_board_array)):
+        if flattened_board_array[i] == 'WALL':
+            flattened_board_array[i] = 0
+        else:
+            flattened_board_array[i] = float(flattened_board_array[i])
+
+    for state in range(len(flattened_board_array)):
+            x, y = state_to_cord(mdp, state)
+            if mdp.board[x][y] == 'WALL' or (x, y) in mdp.terminal_states:
+                continue
+            neighbors = get_neighbors(mdp, x, y)
+            print(neighbors)
+
+            for index, neighbor in enumerate(neighbors):
+                print("policy[x][y]", policy[x][y])
+                print(probs[state][neighbor[1][0] + neighbor[1][1]])
+                tmp = mdp.transition_function[policy[x][y]]
+                probs[state][neighbor[1][0] + neighbor[1][1]] = mdp.transition_function[policy[x][y]][index]
+
     I = np.eye(mdp.num_col * mdp.num_row)
-    U = np.linalg.inv(I - mdp.gamma @ policy) @ mdp.board
-    return U
+    U = np.linalg.inv(I - mdp.gamma * probs) @ flattened_board_array
+    for row in range(mdp.num_row):
+        for col in range(mdp.num_col):
+            U_res[row][col] = U[row + col]
+    return U_res
     # ========================
 
 
@@ -83,10 +124,33 @@ def policy_iteration(mdp: MDP, policy_init: np.ndarray) -> np.ndarray:
     # run the policy iteration algorithm
     # return: the optimal policy
     #
-    optimal_policy = None
-    # TODO:
+    optimal_policy = deepcopy(policy_init)
+
     # ====== YOUR CODE: ======
-    raise NotImplementedError
+    unchanged = False
+    while not unchanged:
+        unchanged = True
+        U = policy_evaluation(mdp, optimal_policy)
+        for r in range(mdp.num_row):
+            for c in range(mdp.num_col):
+                if mdp.board[r][c] == "WALL":
+                    continue
+                if (r, c) in mdp.terminal_states:
+                    continue
+                utilities_actions = []
+                for action in mdp.actions:
+                    sum_uti = 0
+                    for i, optional_act in enumerate(mdp.actions):
+                        if optional_act == optimal_policy[r][c]:
+                            optimal_policy_index = i
+                        next_state = mdp.step((r, c), optional_act)
+                        sum_uti += U[next_state[0]][next_state[1]] * mdp.transition_function[action][i]
+                    utilities_actions.append(sum_uti)
+                if max(utilities_actions) > utilities_actions[optimal_policy_index]:
+                    max_index = utilities_actions.index(max(utilities_actions))
+                    optimal_policy[r][c] = max_index
+                    unchanged = False
+
     # ========================
     return optimal_policy
 
