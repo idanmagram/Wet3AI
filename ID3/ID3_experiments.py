@@ -29,9 +29,14 @@ def basic_experiment(x_train, y_train, x_test, y_test, formatted_print=False):
     acc = None
 
     # ====== YOUR CODE: ======
-    raise NotImplementedError
-    # ========================
+    attributes_names, _, _ = load_data_set('ID3')
+    model = ID3(label_names=attributes_names)
+    model.fit(x_train, y_train)
 
+    y_pred = model.predict(x_test)
+    acc = accuracy(y_test, y_pred)
+    # ========================
+    print("acc is ", acc)
     assert acc > 0.9, 'you should get an accuracy of at least 90% for the full ID3 decision tree'
     print(f'Test Accuracy: {acc * 100:.2f}%' if formatted_print else acc)
 
