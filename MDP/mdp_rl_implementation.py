@@ -24,7 +24,8 @@ def value_iteration(mdp: MDP, U_init: np.ndarray, epsilon: float=10 ** (-3)) -> 
                 if mdp.board[r][c] == "WALL":
                     continue
                 if (r, c) in mdp.terminal_states:
-                    U_tag[r][c] = float(mdp.get_reward((r, c)))
+                    delta = max(delta, abs(float(mdp.board[r][c]) - U_final[r][c]))
+                    U_tag[r][c] = float(mdp.board[r][c])
                     continue
                 utilities_actions = []
                 for action in mdp.actions:
@@ -37,6 +38,7 @@ def value_iteration(mdp: MDP, U_init: np.ndarray, epsilon: float=10 ** (-3)) -> 
                 delta = max(abs(U_tag[r][c] - U_final[r][c]), delta)
     return U_final
     # ========================
+
 
 
 def get_policy(mdp: MDP, U: np.ndarray) -> np.ndarray:
@@ -53,13 +55,15 @@ def get_policy(mdp: MDP, U: np.ndarray) -> np.ndarray:
             if mdp.board[r][c] == "WALL" or (r, c) in mdp.terminal_states:
                 policy[r][c] = None
                 continue
-            max_neighbor_utility = -float('inf')
-            for optional_act in mdp.actions.keys():
-                next_state = mdp.step((r, c), optional_act)
-                if next_state != (r, c) and U[next_state[0]][next_state[1]] > max_neighbor_utility:
-                    max_neighbor_utility = U[next_state[0]][next_state[1]]
-                    max_action = optional_act
 
+            utilities = [U[mdp.step((r, c), action)[0]][mdp.step((r, c), action)[1]] for action in mdp.actions.keys()]
+            max_neighbor_utility = -float('inf')
+            max_action = -1
+            for action in mdp.actions.keys():
+                probabilities = mdp.transition_function[action]
+                if sum(np.multiply(utilities, probabilities)) > max_neighbor_utility:
+                    max_neighbor_utility = sum(np.multiply(utilities, probabilities))
+                    max_action = action
             policy[r][c] = max_action
     # ========================
     return policy
@@ -91,7 +95,7 @@ def policy_evaluation(mdp: MDP, policy: np.ndarray) -> np.ndarray:
 
     for i in range(len(flattened_board_array)):
         if flattened_board_array[i] == 'WALL':
-            flattened_board_array[i] = 0
+            flattened_board_array[i] = float(0)
         else:
             flattened_board_array[i] = float(flattened_board_array[i])
 
@@ -102,13 +106,13 @@ def policy_evaluation(mdp: MDP, policy: np.ndarray) -> np.ndarray:
             neighbors = get_neighbors(mdp, x, y)
 
             for index, neighbor in enumerate(neighbors):
-                probs[state][neighbor[1][0]*mdp.num_col + neighbor[1][1]] += mdp.transition_function[Action(policy[x][y])][index]
+                probs[state][neighbor[1][0]*mdp.num_col + neighbor[1][1]] += float(mdp.transition_function[Action(policy[x][y])][index])
 
     I = np.eye(mdp.num_col * mdp.num_row)
     U = np.linalg.inv(I - mdp.gamma * probs) @ flattened_board_array
     for row in range(mdp.num_row):
         for col in range(mdp.num_col):
-            U_res[row][col] = U[row*mdp.num_col + col]
+            U_res[row][col] = float(U[row*mdp.num_col + col])
     return U_res
     # ========================
 
@@ -188,7 +192,6 @@ def adp_algorithm(
             reward_matrix[state[0]][state[1]] = reward
             number_of_actions[action][actual_action] += 1
             transition_probs[action][actual_action] = number_of_actions[action][actual_action] / sum((number_of_actions[action]).values())
-
 
     # ========================
     return reward_matrix, transition_probs 
