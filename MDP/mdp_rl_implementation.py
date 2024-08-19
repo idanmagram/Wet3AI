@@ -90,14 +90,15 @@ def policy_evaluation(mdp: MDP, policy: np.ndarray) -> np.ndarray:
     #
     # ====== YOUR CODE: ======
     U_res = deepcopy(policy)
-    flattened_board_array = [item for sublist in mdp.board for item in sublist]
+    flattened_board_array = [(item) for sublist in mdp.board for item in sublist]
     probs = np.zeros((len(flattened_board_array), len(flattened_board_array)), dtype=float)
+    b = np.zeros((len(flattened_board_array), 1))
 
     for i in range(len(flattened_board_array)):
         if flattened_board_array[i] == 'WALL':
-            flattened_board_array[i] = float(0)
+            b[i] = float(0)
         else:
-            flattened_board_array[i] = float(flattened_board_array[i])
+            b[i] = float(flattened_board_array[i])
 
     for state in range(len(flattened_board_array)):
             x, y = state_to_cord(mdp, state)
@@ -106,13 +107,21 @@ def policy_evaluation(mdp: MDP, policy: np.ndarray) -> np.ndarray:
             neighbors = get_neighbors(mdp, x, y)
 
             for index, neighbor in enumerate(neighbors):
+                #print("index is ", index)
+                #print("states are ", neighbor[1][0]*mdp.num_col + neighbor[1][1])
                 probs[state][neighbor[1][0]*mdp.num_col + neighbor[1][1]] += float(mdp.transition_function[Action(policy[x][y])][index])
 
     I = np.eye(mdp.num_col * mdp.num_row)
-    U = np.linalg.inv(I - mdp.gamma * probs) @ flattened_board_array
+    a = np.array(I - float(mdp.gamma) * probs)
+    U = np.linalg.solve(a, b)
+
+    #U = np.linalg.inv(np.array(I - float(mdp.gamma) * probs)) @ np.array(flattened_board_array)
     for row in range(mdp.num_row):
         for col in range(mdp.num_col):
-            U_res[row][col] = float(U[row*mdp.num_col + col])
+            if mdp.board[row][col] == 'WALL':
+                U_res[row][col] = "None"
+            else:
+                U_res[row][col] = float(U[row*mdp.num_col + col])
     return U_res
     # ========================
 
@@ -176,7 +185,7 @@ def adp_algorithm(
     its nested dicionary will contain the condional probabilites of all the actions. 
     """
 
-    reward_matrix = np.zeros((num_rows, num_cols))
+    reward_matrix = np.full((num_rows, num_cols), None)
 
     # Initialize transition probabilities and number of actions dictionaries
     transition_probs = {action: {a: 0.0 for a in actions} for action in actions}
@@ -187,7 +196,9 @@ def adp_algorithm(
         for step_index, step in enumerate(episode_gen):
             state, reward, action, actual_action = step
             print(f"Step {step_index}: state={state}, reward={reward}, action={action}, actual_action={actual_action}")
+
             if action == None and actual_action == None:
+                reward_matrix[state[0]][state[1]] = reward
                 continue
             reward_matrix[state[0]][state[1]] = reward
             number_of_actions[action][actual_action] += 1
