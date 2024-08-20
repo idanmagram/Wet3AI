@@ -40,8 +40,6 @@ def example_driver():
 
     print("\nPolicy evaluation:")
     U_eval = policy_evaluation(mdp, policy)
-    U_eval[2][3] = 0.999
-    U_eval[1][2] = 0.999
     mdp.print_utility(U_eval)
 
 
