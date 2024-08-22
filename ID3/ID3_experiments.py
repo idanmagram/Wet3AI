@@ -32,7 +32,6 @@ def basic_experiment(x_train, y_train, x_test, y_test, formatted_print=False):
     attributes_names, _, _ = load_data_set('ID3')
     model = ID3(label_names=attributes_names)
     model.fit(x_train, y_train)
-
     y_pred = model.predict(x_test)
     acc = accuracy(y_test, y_pred)
     # ========================

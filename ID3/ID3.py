@@ -195,9 +195,9 @@ class ID3:
         if isinstance(node, Leaf):
             prediction = max(node.predictions, key=node.predictions.get)
         elif node.question.match(row):
-            self.predict_sample(row, node.true_branch)
+            prediction = self.predict_sample(row, node.true_branch)
         else:
-            self.predict_sample(row, node.false_branch)
+            prediction = self.predict_sample(row, node.false_branch)
         # ========================
 
         return prediction
